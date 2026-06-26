@@ -8,7 +8,7 @@
         /* Base Styling & Material Design Background */
         body {
             font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
-            background-color: #f0ebf8; /* Google Forms classic light purple background */
+            background-color: #f0ebf8;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -24,12 +24,11 @@
             background: white;
             padding: 35px 30px;
             border-radius: 8px;
-            /* Authentic Google Form shadow */
             box-shadow: 0 2px 1px -1px rgba(0,0,0,.2), 0 1px 1px 0 rgba(0,0,0,.14), 0 1px 3px 0 rgba(0,0,0,.12);
             width: 100%;
             max-width: 550px;
             box-sizing: border-box;
-            border-top: 8px solid #673ab7; /* Google Form Purple */
+            border-top: 8px solid #673ab7;
             margin-bottom: 20px;
         }
         
@@ -172,7 +171,7 @@
             border: 2px solid #673ab7;
             color: #673ab7;
             font-weight: 500;
-            padding: 15px; /* Adjust padding to offset the thicker border */
+            padding: 15px; 
         }
 
         #sync-status {
@@ -248,7 +247,9 @@
     
     <div id="image-container">
         <h3 style="margin-bottom: 20px;">Identify the structure shown in the image.</h3>
-        <img id="question-img" class="question-image" src="" alt="Quiz Image">
+        
+        <img id="question-img" class="question-image" src="" alt="Quiz Image" oncontextmenu="return false;" draggable="false" style="-webkit-touch-callout: none; pointer-events: none;">
+        
         <div class="btn-container">
             <button id="proceed-btn" class="primary-btn">Proceed to Options</button>
         </div>
@@ -290,12 +291,13 @@
     let score = 0;
     let timeLeft; 
     let timerInterval;
-    
-    // NEW: Variable to track what the user clicks before hitting confirm
     let currentSelectedOption = null; 
-    
     let userData = { name: "", email: "", department: "", semester: "" };
     let userAnswers = []; 
+
+    // --- ANTI-CHEAT VARIABLES ---
+    let tabSwitchCount = 0;
+    const maxViolations = 2; // Disqualify on the 3rd attempt
 
     const introSection = document.getElementById("intro-section");
     const quizSection = document.getElementById("quiz-section");
@@ -305,6 +307,31 @@
     const userForm = document.getElementById("user-form");
     const confirmBtn = document.getElementById("confirm-btn");
 
+    // --- ANTI-CHEAT FUNCTIONS ---
+    function handleTabSwitch() {
+        if (quizSection.style.display === "block") {
+            tabSwitchCount++;
+            
+            if (tabSwitchCount > maxViolations) {
+                alert("🚨 VIOLATION: You have left the quiz window too many times. Your quiz is being automatically submitted.");
+                endQuiz(); 
+            } else {
+                alert(`⚠️ WARNING: Please do not switch tabs or leave this window. \n\nViolation ${tabSwitchCount} of ${maxViolations}. Your quiz will be auto-submitted if you do this again.`);
+            }
+        }
+    }
+
+    document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+            handleTabSwitch();
+        }
+    });
+
+    window.addEventListener("blur", () => {
+        handleTabSwitch();
+    });
+
+    // --- QUIZ LOGIC ---
     userForm.addEventListener("submit", function(e) {
         e.preventDefault();
         
@@ -330,18 +357,25 @@
     function loadQuestionImage() {
         imageContainer.style.display = "block";
         optionsContainer.style.display = "none";
-        document.getElementById("question-img").src = quizData[currentQuestionIndex].image;
+        
+        const currentData = quizData[currentQuestionIndex];
+        const imgElement = document.getElementById("question-img");
+        
+        imgElement.src = currentData.image;
+        
+        // DECOY ALT TEXT: Dynamically pulls a wrong option to trick screen scanners
+        const wrongAnswers = currentData.options.filter(opt => opt !== currentData.answer);
+        imgElement.alt = wrongAnswers[0]; 
         
         startTimer();
     }
 
-    // UPDATED: Now creates options that wait for the Confirm button
     function loadQuestionOptions() {
         const optionsList = document.getElementById("options-list");
         optionsList.innerHTML = "";
         
-        currentSelectedOption = null; // Reset selection
-        confirmBtn.style.display = "none"; // Hide confirm button initially
+        currentSelectedOption = null; 
+        confirmBtn.style.display = "none"; 
         
         quizData[currentQuestionIndex].options.forEach(option => {
             const button = document.createElement("button");
@@ -349,14 +383,11 @@
             button.className = "option-btn";
             
             button.onclick = function() {
-                // Remove 'selected' class from all buttons
                 const allButtons = document.querySelectorAll('.option-btn');
                 allButtons.forEach(btn => btn.classList.remove('selected'));
                 
-                // Add 'selected' class to the clicked button
                 this.classList.add('selected');
                 
-                // Save the choice and show the confirm button
                 currentSelectedOption = option;
                 confirmBtn.style.display = "block";
             };
@@ -365,7 +396,6 @@
         });
     }
 
-    // NEW: Event listener for the confirm button
     confirmBtn.addEventListener("click", function() {
         if (currentSelectedOption) {
             checkAnswer(currentSelectedOption);
@@ -442,10 +472,10 @@
             mode: 'no-cors'
         }).then(() => {
             syncStatus.innerText = "Results saved successfully!";
-            syncStatus.style.color = "#188038"; // Google Form Green
+            syncStatus.style.color = "#188038"; 
         }).catch(error => {
             syncStatus.innerText = "Sync failure. Please check your connectivity.";
-            syncStatus.style.color = "#d93025"; // Google Form Red
+            syncStatus.style.color = "#d93025"; 
         });
     }
 </script>
