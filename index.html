@@ -183,7 +183,7 @@
 <body>
 
 <div id="intro-section" class="container">
-    <h2 style="font-size: 2rem; margin-bottom: 10px;"><B>Guess The Structure</B></h2>
+    <h2 style="font-size: 2rem; margin-bottom: 10px;"><b>Guess The Structure</b></h2>
     <hr style="border: 0; border-top: 1px solid #dadce0; margin: 25px 0;">
    <p style="color: #5f6368; font-size: 0.95rem; line-height: 1.6; margin-bottom: 20px;">
     <strong style="color:blueviolet; font-size: 1.2rem;">📌 Instructions</strong><br>
@@ -195,7 +195,7 @@
     • Once you proceed to the next page, you <br> cannot return to the previous page.<br>
     • Answer all questions to the best of your ability.<br>
     • Participants will be ranked based on their scores.<br>
-    • In case of a tie, faster completion time and earlier<Br> submission will be given priority.<br><br>
+    • In case of a tie, faster completion time and earlier<br> submission will be given priority.<br><br>
     <strong style="color: #673ab7;">✨ Good luck and enjoy the challenge!</strong>
 </p>
 <hr style="border: 0; border-top: 1px solid #dadce0; margin: 25px 0;">
@@ -268,6 +268,7 @@
 <div id="result-section" class="container">
     <h2 style="font-size: 2rem; margin-bottom: 10px;">Quiz Complete!</h2>
     <p style="font-size: 1.2rem; margin-top: 20px;">Your Score: <strong id="score" style="color: #673ab7; font-size: 1.5rem;">0</strong> / 10</p>
+    <p style="font-size: 1.1rem; margin-top: 10px;">Total Time: <strong id="display-total-time" style="color: #d93025;"></strong></p>
     <p id="sync-status">Transmitting your performance to records...</p>
 </div>
 
@@ -294,10 +295,15 @@
     let currentSelectedOption = null; 
     let userData = { name: "", email: "", department: "", semester: "" };
     let userAnswers = []; 
+    
+    // --- NEW TIME VARIABLES ---
+    let startTimeObj = null;
+    let formattedStartTime = "";
+    let totalTimeTakenInSeconds = 0;
 
     // --- ANTI-CHEAT VARIABLES ---
     let tabSwitchCount = 0;
-    const maxViolations = 2; // Disqualify on the 3rd attempt
+    const maxViolations = 2; 
 
     const introSection = document.getElementById("intro-section");
     const quizSection = document.getElementById("quiz-section");
@@ -335,6 +341,10 @@
     userForm.addEventListener("submit", function(e) {
         e.preventDefault();
         
+        // Record Start Time
+        startTimeObj = new Date();
+        formattedStartTime = startTimeObj.toLocaleString();
+        
         userData.name = document.getElementById("userName").value;
         userData.email = document.getElementById("userEmail").value; 
         userData.semester = document.getElementById("userSem").value;
@@ -363,7 +373,6 @@
         
         imgElement.src = currentData.image;
         
-        // DECOY ALT TEXT: Dynamically pulls a wrong option to trick screen scanners
         const wrongAnswers = currentData.options.filter(opt => opt !== currentData.answer);
         imgElement.alt = wrongAnswers[0]; 
         
@@ -445,9 +454,20 @@
 
     function endQuiz() {
         clearInterval(timerInterval); 
+        
+        // Calculate Total Time Taken
+        const endTimeObj = new Date();
+        totalTimeTakenInSeconds = Math.floor((endTimeObj - startTimeObj) / 1000);
+        
+        // Format time into Minutes and Seconds for UI display
+        const minutes = Math.floor(totalTimeTakenInSeconds / 60);
+        const seconds = totalTimeTakenInSeconds % 60;
+        const formattedTotalTime = minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+
         quizSection.style.display = "none";
         resultSection.style.display = "block";
         document.getElementById("score").innerText = score;
+        document.getElementById("display-total-time").innerText = formattedTotalTime;
         
         submitDataToSheets();
     }
@@ -461,6 +481,10 @@
         formData.append("department", userData.department);
         formData.append("semester", userData.semester);
         formData.append("score", score);
+        
+        // Append Time Variables
+        formData.append("startTime", formattedStartTime);
+        formData.append("totalTime", totalTimeTakenInSeconds + " seconds");
 
         userAnswers.forEach((ans, index) => {
             formData.append(`q${index + 1}`, ans);
